@@ -1,0 +1,8 @@
+title="example"
+author="zhengxin"
+file="examples/example.txt"
+cover="examples/cover_example.jpg"
+thumbnail="examples/cover_example.jpg"
+chapter="^第\\d+章 .*$"
+compress=false
+encoding="GB18030"
