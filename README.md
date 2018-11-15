@@ -33,6 +33,17 @@ go build
 [windows]$ txt2mobi.exe -f example.toml [- o output_file_name.mobi] [-p]
 ```
 
+## termimal parameter
+require:
+
+- `-f`: config file
+
+options:
+
+- `-o`: output file name
+- `-p`: is to use '\<p\>\</p\>' to pack every paragrahes.
+- `-escape`: to disable html escape
+
 ## config file
 
 ```toml

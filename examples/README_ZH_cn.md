@@ -28,6 +28,17 @@ go build
 [windows]$ txt2mobi.exe -f example.toml [- o output_file_name.mobi] [-p]
 ```
 
+## termimal parameter
+require:
+
+- `-f`: config file
+
+options:
+
+- `-o`: 输出文件名
+- `-p`: 是否使用 '\<p\>\</p\>' 装饰段落.
+- `-escape`: 关闭html转义
+
 ## 配置文件
 ```toml
 title="Example"

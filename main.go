@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"flag"
+	"html"
 	"log"
 	"os"
 
@@ -18,6 +19,7 @@ var (
 	ConfigFile     = flag.String("f", "", "ebook config file(.toml)")
 	IsParagraph    = flag.Bool("p", false, "[option]is to use <p></p>,use false as default")
 	OutputFileName = flag.String("o", "", "[option]output file name")
+	IsEscape       = flag.Bool("escape", false, "[option]To Disable html escape")
 )
 
 type ChapterContent struct {
@@ -26,6 +28,9 @@ type ChapterContent struct {
 }
 
 func (c *ChapterContent) Append(content []byte) {
+	if !*IsEscape {
+		content = []byte(html.EscapeString(string(content)))
+	}
 	if *IsParagraph {
 		if len(content) > 1 {
 			c.Content = append(c.Content, bytes.Join([][]byte{PStart, content, PEnd}, Blank)...)
