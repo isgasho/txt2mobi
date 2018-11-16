@@ -12,30 +12,34 @@ import (
 )
 
 type Config struct {
-	Title        string
-	Cover        string
-	Thumbnail    string
-	Author       string
-	Chapter      string
-	Encoding     string
-	File         string
-	ChapterRegex *regexp.Regexp
-	Compress     bool
-	decode       *encoding.Decoder
+	Title           string
+	Cover           string
+	Thumbnail       string
+	Author          string
+	Chapter         string
+	SubChapter      string
+	Encoding        string
+	File            string
+	ChapterRegex    *regexp.Regexp
+	SubChapterRegex *regexp.Regexp
+	Compress        bool
+	decode          *encoding.Decoder
 }
 
-func New(title, cover, thumbnail, author, chapter, encoding, file string, compress bool) (*Config, error) {
+func New(title, cover, thumbnail, author, chapter, subchapter, encoding, file string, compress bool) (*Config, error) {
 	config := &Config{
-		Title:        title,
-		Cover:        cover,
-		Thumbnail:    thumbnail,
-		Author:       author,
-		Chapter:      chapter,
-		Encoding:     encoding,
-		File:         file,
-		Compress:     compress,
-		ChapterRegex: nil,
-		decode:       nil,
+		Title:           title,
+		Cover:           cover,
+		Thumbnail:       thumbnail,
+		Author:          author,
+		Chapter:         chapter,
+		SubChapter:      subchapter,
+		Encoding:        encoding,
+		File:            file,
+		Compress:        compress,
+		ChapterRegex:    nil,
+		SubChapterRegex: nil,
+		decode:          nil,
 	}
 	err := config.Check()
 	return config, err
@@ -56,6 +60,9 @@ func (config *Config) Check() (err error) {
 		return
 	}
 	config.ChapterRegex, err = regexp.Compile(config.Chapter)
+	if err == nil && config.SubChapter != "" {
+		config.SubChapterRegex, err = regexp.Compile(config.SubChapter)
+	}
 	return
 }
 

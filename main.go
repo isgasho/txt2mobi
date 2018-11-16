@@ -2,20 +2,17 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"flag"
-	"html"
+	"fmt"
 	"log"
 	"os"
 
+	"./chapter"
 	"./settings"
 )
 
 var (
-	LineFeed       = []byte("<br/>")
-	PStart         = []byte("<p>")
-	PEnd           = []byte("</p>")
-	Blank          = []byte{}
+	HELP           = flag.Bool("h", false, "help")
 	ConfigFile     = flag.String("config", "", "ebook config file(.toml)")
 	IsParagraph    = flag.Bool("p", false, "[option]is to use <p></p>,use false as default")
 	OutputFileName = flag.String("o", "", "[option]output file name")
@@ -26,50 +23,27 @@ var (
 	MetaAuthor     = flag.String("author", "", "EBOK author")
 	MetaCompress   = flag.Bool("compress", false, "Is to compress")
 	MetaEncoding   = flag.String("encoding", "gb18030", "encoding:gb18030(default),gbk,uft-8")
-	MetaChapter    = flag.String("chapter", "^第[零一二三四五六七八九十百千两\\d]+章 .*$", "regexp pattern for chapter,default:'^第[零一二三四五六七八九十百千两\\d]+章 .*$'")
+	MetaChapter    = flag.String("chapter", "^第[零一二三四五六七八九十百千两\\d]+章[　 ]{0,1}.*$", "regexp pattern for chapter,default:'^第[零一二三四五六七八九十百千两\\d]+章 .*$'")
+	MetaSubChapter = flag.String("subchapter", "", "regexp pattern for chapter,default:'^第[零一二三四五六七八九十百千两\\d]+章[　 ]{0,1}.*$'")
 )
-
-type ChapterContent struct {
-	Title   string
-	Content []byte
-}
-
-func (c *ChapterContent) Append(content []byte) {
-	if !*IsEscape {
-		content = []byte(html.EscapeString(string(content)))
-	}
-	if *IsParagraph {
-		if len(content) > 1 {
-			c.Content = append(c.Content, bytes.Join([][]byte{PStart, content, PEnd}, Blank)...)
-		} else {
-			c.Content = append(c.Content, LineFeed...)
-		}
-	} else {
-		c.Content = append(c.Content, LineFeed...)
-		if len(content) > 1 {
-			c.Content = append(c.Content, content...)
-		}
-	}
-
-}
-
-func (c *ChapterContent) SetTitle(title string) {
-	c.Title = title
-}
-
-func (c *ChapterContent) Restore(title string) {
-	c.Title = title
-	c.Content = make([]byte, 0)
-}
 
 func main() {
 	flag.Parse()
+	if *HELP {
+		flag.Usage()
+		fmt.Println(`Sugesstion:
+	chapter: "^第[零一二三四五六七八九十百千两\\d]+[卷部][　 ]{0,1}.*$"
+	subchapter: "^第[零一二三四五六七八九十百千两\\d]+章[　 ]{0,1}.*$"`)
+		return
+	}
+	chapter.IsEscape = *IsEscape
+	chapter.IsParagraph = *IsParagraph
 	var config *settings.Config
 	var err error
 	if *ConfigFile != "" {
 		config, err = settings.NewConfig(*ConfigFile)
 	} else {
-		config, err = settings.New(*MetaTitle, *MetaCover, *MetaCover, *MetaAuthor, *MetaChapter, *MetaEncoding, *MetaFile, *MetaCompress)
+		config, err = settings.New(*MetaTitle, *MetaCover, *MetaCover, *MetaAuthor, *MetaChapter, *MetaSubChapter, *MetaEncoding, *MetaFile, *MetaCompress)
 	}
 	if err != nil {
 		log.Fatal(err)
@@ -88,29 +62,23 @@ func main() {
 		log.Fatal(err)
 	}
 
-	chapter := ChapterContent{
-		Title:   config.Title,
-		Content: []byte{},
-	}
-	regex := config.ChapterRegex
+	chapter := chapter.New(config.Title)
 	var line []byte
 	for scanner.Scan() {
 		line, err = config.Decode(scanner.Bytes())
 		if err != nil {
 			log.Fatal(err)
 		}
-		if regex.Match(line) {
-			if len(chapter.Content) > 0 {
-				mobiWriter.NewChapter(chapter.Title, chapter.Content)
-			}
+		if config.ChapterRegex.Match(line) {
+			chapter.Flush(mobiWriter)
 			chapter.Restore(string(line))
+		} else if config.SubChapterRegex != nil && config.SubChapterRegex.Match(line) {
+			chapter.AddSubChapter(string(line))
 		} else {
 			chapter.Append(line)
 		}
 	}
-	if len(chapter.Content) > 0 {
-		mobiWriter.NewChapter(chapter.Title, chapter.Content)
-	}
+	chapter.Flush(mobiWriter)
 	mobiWriter.Write()
 	if err = scanner.Err(); err != nil {
 		log.Fatal(err)
