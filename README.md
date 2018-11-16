@@ -35,10 +35,26 @@ go build
 
 ## termimal parameter
 require:
+- `-config`: config file
 
-- `-f`: config file
+`or`
+
+require:
+
+- `-f`: input file
+- `-title`: book title
+- `-author`: book author
+- `-cover`: book cover and thumbnail
+- `-chapter`: chater title regexp pattern
 
 options:
+
+- `-subchapter`: subchapter title regexp pattern
+- `compress`: is to compress the result
+- `encoding:`: use gb18030 as default
+
+
+other options:
 
 - `-o`: output file name
 - `-p`: is to use '\<p\>\</p\>' to pack every paragrahes.
@@ -53,6 +69,7 @@ file="example.txt"
 cover="cover_example.jpg"
 thumbnail="cover_example.jpg"
 chapter="^Chapter\\.\\d+.*$"
+subchapter='^Chapter\\.\\d+\-\\d+ .*$'
 compress=false
 ```
 
