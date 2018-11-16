@@ -30,10 +30,23 @@ go build
 
 ## termimal parameter
 require:
+- `-config`: config file
 
-- `-f`: config file
+or
 
+require:
+- `-f`: 文档
+- `-title`: 书名
+- `-author`: 作者
+- `-cover`: 封面及缩略图
+- `-chapter`: 一级标题的正则表达式
 options:
+- `-subchapter`: 二级标题的正则表达式，默认为空
+- `compress`: 是否压缩，默认不使用
+- `encoding`： 文件编码，默认为gb18030
+
+
+other options:
 
 - `-o`: 输出文件名
 - `-p`: 是否使用 '\<p\>\</p\>' 装饰段落.
@@ -46,7 +59,8 @@ author="zhengxin"
 file="example.txt"
 cover="cover_example.jpg"
 thumbnail="cover_example.jpg"
-chapter="^Chapter\\.\\d+.*$"
+chapter="^第.*卷 .*$"
+subchapter="^第\\d+章 .*$"
 compress=false
 ```
 
