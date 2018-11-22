@@ -13,8 +13,23 @@ _ps: 文档中的所有html元素都会生效_
 - github.com/BurntSushi/toml
 - golang.org/x/text/encoding/simplifiedchinese
 
+_support default cover:_
+- github.com/golang/freetype/truetype
+- github.com/nfnt/resize
+- golang.org/x/image/font
+- github.com/fogleman/gg
+
+
+安装go-bindata
+
+```
+go get -u github.com/jteeuwen/go-bindata/...
+```
+
+
 运行命令
 ```
+go-bindata -o assets/asset.go -pkg=assets assets/...
 go build
 ```
 

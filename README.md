@@ -15,8 +15,21 @@ Get the following packges.
 - github.com/BurntSushi/toml
 - golang.org/x/text/encoding/simplifiedchinese
 
+_support default cover:_
+- github.com/golang/freetype/truetype
+- github.com/nfnt/resize
+- golang.org/x/image/font
+- github.com/fogleman/gg
+
+Install go-bindata
+
+```
+go get -u github.com/jteeuwen/go-bindata/...
+```
+
 Run the build cmd:
 ```
+go-bindata -o assets/asset.go -pkg=assets assets/...
 go build
 ```
 

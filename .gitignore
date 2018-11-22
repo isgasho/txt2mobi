@@ -39,3 +39,4 @@ nohup.out
 tmp/*
 *.bak
 *.mobi
+assets/*.go
