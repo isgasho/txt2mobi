@@ -2,19 +2,13 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"flag"
 	"fmt"
-	"image"
-	"image/png"
 	"log"
 	"os"
-	"time"
 
-	"./assets"
 	"./chapter"
 	"./settings"
-	"github.com/golang/freetype/truetype"
 )
 
 var (
@@ -25,6 +19,7 @@ var (
 	IsEscape       = flag.Bool("escape", false, "[option]To Disable html escape")
 	MetaFile       = flag.String("f", "", "input file")
 	MetaCover      = flag.String("cover", "", "mobi cover")
+	MetaThumb      = flag.String("thumb", "", "mobi thumbnail")
 	MetaTitle      = flag.String("title", "", "mobi title")
 	MetaAuthor     = flag.String("author", "", "EBOK author")
 	MetaCompress   = flag.Bool("compress", false, "Is to compress")
@@ -35,50 +30,27 @@ var (
 	CONFIG *settings.Config
 )
 
-func loadFont() (*truetype.Font, error) {
-	fontBytes, err := assets.Asset("assets/SourceHanSansSC-Bold.ttf")
-	if err != nil {
-		return nil, err
-	}
-	return truetype.Parse(fontBytes)
-}
-
-func loadDefaultCover() (img image.Image, err error) {
-
-	imgByte, err := assets.Asset(fmt.Sprintf("assets/backgroud%d.png", time.Now().Second()%3))
-	if err != nil {
-		return
-	}
-	return png.Decode(bytes.NewReader(imgByte))
-}
-
 func init() {
 	flag.Parse()
 	var err error
 	if *ConfigFile != "" {
 		CONFIG, err = settings.NewConfig(*ConfigFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		CONFIG.Update(*MetaFile, *MetaTitle, *MetaAuthor, *MetaCover, *MetaThumb)
 	} else {
-		CONFIG, err = settings.New(*MetaTitle, *MetaCover, *MetaCover, *MetaAuthor, *MetaChapter, *MetaSubChapter, *MetaEncoding, *MetaFile, *MetaCompress)
+		CONFIG = settings.New(*MetaTitle, *MetaCover, *MetaCover, *MetaAuthor, *MetaChapter, *MetaSubChapter, *MetaEncoding, *MetaFile, *MetaCompress)
 	}
-	if err != nil {
+
+	if err = CONFIG.Check(); err != nil {
 		log.Fatal(err)
 		flag.Usage()
 		return
 	}
-	font, err := loadFont()
-	if err != nil {
-		log.Fatal(err)
-	}
-	CONFIG.Font = font
-	img, err := loadDefaultCover()
-	if err != nil {
-		log.Fatal(err)
-	}
-	CONFIG.DefaultBackground = img
 }
 
 func main() {
-	flag.Parse()
 	if *HELP {
 		flag.Usage()
 		fmt.Println(`Sugesstion:
@@ -94,17 +66,6 @@ func main() {
 		log.Fatal(err)
 	}
 	defer file.Close()
-
-	if CONFIG.DefaultCover() {
-		err = CONFIG.CreateDefaultCover()
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer func() {
-			os.Remove(CONFIG.Cover)
-			os.Remove(CONFIG.Thumbnail)
-		}()
-	}
 
 	scanner := bufio.NewScanner(file)
 	mobiWriter, err := CONFIG.NewWriter(*OutputFileName)
