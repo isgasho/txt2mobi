@@ -14,7 +14,6 @@ import (
 	"./assets"
 	"./chapter"
 	"./settings"
-	"github.com/golang/freetype/truetype"
 )
 
 var (
@@ -25,23 +24,16 @@ var (
 	IsEscape       = flag.Bool("escape", false, "[option]To Disable html escape")
 	MetaFile       = flag.String("f", "", "input file")
 	MetaCover      = flag.String("cover", "", "mobi cover")
+	MetaThumb      = flag.String("thumb", "", "thumbnail")
 	MetaTitle      = flag.String("title", "", "mobi title")
 	MetaAuthor     = flag.String("author", "", "EBOK author")
 	MetaCompress   = flag.Bool("compress", false, "Is to compress")
 	MetaEncoding   = flag.String("encoding", "gb18030", "encoding:gb18030(default),gbk,uft-8")
-	MetaChapter    = flag.String("chapter", "^第[零一二三四五六七八九十百千两\\d]+章[　 ]{0,1}.*$", "regexp pattern for chapter,default:'^第[零一二三四五六七八九十百千两\\d]+章 .*$'")
+	MetaChapter    = flag.String("chapter", "^第[零一二三四五六七八九十百千两\\d]+章.*$", "regexp pattern for chapter,default:'^第[零一二三四五六七八九十百千两\\d]+章 .*$'")
 	MetaSubChapter = flag.String("subchapter", "", "regexp pattern for chapter,default:'^第[零一二三四五六七八九十百千两\\d]+章[　 ]{0,1}.*$'")
 
 	CONFIG *settings.Config
 )
-
-func loadFont() (*truetype.Font, error) {
-	fontBytes, err := assets.Asset("assets/SourceHanSansSC-Bold.ttf")
-	if err != nil {
-		return nil, err
-	}
-	return truetype.Parse(fontBytes)
-}
 
 func loadDefaultCover() (img image.Image, err error) {
 
@@ -57,28 +49,22 @@ func init() {
 	var err error
 	if *ConfigFile != "" {
 		CONFIG, err = settings.NewConfig(*ConfigFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		CONFIG.Update(*MetaFile, *MetaTitle, *MetaAuthor, *MetaCover, *MetaThumb)
 	} else {
-		CONFIG, err = settings.New(*MetaTitle, *MetaCover, *MetaCover, *MetaAuthor, *MetaChapter, *MetaSubChapter, *MetaEncoding, *MetaFile, *MetaCompress)
+		CONFIG = settings.New(*MetaTitle, *MetaCover, *MetaThumb, *MetaAuthor, *MetaChapter, *MetaSubChapter, *MetaEncoding, *MetaFile, *MetaCompress)
 	}
-	if err != nil {
+
+	if err = CONFIG.Check(); err != nil {
 		log.Fatal(err)
 		flag.Usage()
 		return
 	}
-	font, err := loadFont()
-	if err != nil {
-		log.Fatal(err)
-	}
-	CONFIG.Font = font
-	img, err := loadDefaultCover()
-	if err != nil {
-		log.Fatal(err)
-	}
-	CONFIG.DefaultBackground = img
 }
 
 func main() {
-	flag.Parse()
 	if *HELP {
 		flag.Usage()
 		fmt.Println(`Sugesstion:
@@ -96,6 +82,16 @@ func main() {
 	defer file.Close()
 
 	if CONFIG.DefaultCover() {
+		img, err := loadDefaultCover()
+		if err != nil {
+			log.Fatal(err)
+		}
+		CONFIG.DefaultBackground = img
+		font, err := settings.LoadFont()
+		if err != nil {
+			log.Fatal(err)
+		}
+		CONFIG.Font = font
 		err = CONFIG.CreateDefaultCover()
 		if err != nil {
 			log.Fatal(err)
@@ -109,7 +105,7 @@ func main() {
 	scanner := bufio.NewScanner(file)
 	mobiWriter, err := CONFIG.NewWriter(*OutputFileName)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("generate Writer:", err)
 	}
 
 	chapter := chapter.New(CONFIG.Title)
@@ -117,7 +113,7 @@ func main() {
 	for scanner.Scan() {
 		line, err = CONFIG.Decode(scanner.Bytes())
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("Decode:", err)
 		}
 		if CONFIG.ChapterRegex.Match(line) {
 			chapter.Flush(mobiWriter)
@@ -131,6 +127,6 @@ func main() {
 	chapter.Flush(mobiWriter)
 	mobiWriter.Write()
 	if err = scanner.Err(); err != nil {
-		log.Fatal(err)
+		log.Fatal("scanner:", err)
 	}
 }

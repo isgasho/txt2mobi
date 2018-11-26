@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/png"
+	"io/ioutil"
 	"math"
 	"os"
 	"regexp"
@@ -16,10 +17,35 @@ import (
 
 	"github.com/766b/mobi"
 	"github.com/BurntSushi/toml"
+	"github.com/flopp/go-findfont"
 	"github.com/golang/freetype/truetype"
+	z "github.com/nutzam/zgo"
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/encoding/simplifiedchinese"
 )
+
+func findFontExpected(fontExpected []string) (fontPath string, err error) {
+	for _, fontE := range fontExpected {
+		fontPath, err = findfont.Find(fontE)
+		if err == nil {
+			return
+		}
+	}
+	return fontPath, fmt.Errorf("Font not Found")
+}
+
+func LoadFont() (font *truetype.Font, err error) {
+	fontExpected := []string{"DroidSansFallbackLegacy.ttf", "SourceHanSansSC-Bold.ttf", "NotoSansMono-Bold.ttf", "NotoSansCJK-Bold.ttc", "simhei.ttf", "simsunb.ttf"}
+	fontPath, err := findFontExpected(fontExpected)
+	if err != nil {
+		return
+	}
+	fontData, err := ioutil.ReadFile(fontPath)
+	if err != nil {
+		return
+	}
+	return truetype.Parse(fontData)
+}
 
 type Config struct {
 	Title             string
@@ -38,8 +64,8 @@ type Config struct {
 	DefaultBackground image.Image
 }
 
-func New(title, cover, thumbnail, author, chapter, subchapter, encoding, file string, compress bool) (*Config, error) {
-	config := &Config{
+func New(title, cover, thumbnail, author, chapter, subchapter, encoding, file string, compress bool) *Config {
+	return &Config{
 		Title:           title,
 		Cover:           cover,
 		Thumbnail:       thumbnail,
@@ -53,8 +79,24 @@ func New(title, cover, thumbnail, author, chapter, subchapter, encoding, file st
 		SubChapterRegex: nil,
 		decode:          nil,
 	}
-	err := config.Check()
-	return config, err
+}
+
+func (c *Config) Update(file, title, author, cover, thumbnail string) {
+	if file != "" {
+		c.File = file
+	}
+	if title != "" {
+		c.Title = title
+	}
+	if author != "" {
+		c.Author = author
+	}
+	if cover != "" {
+		c.Cover = cover
+	}
+	if thumbnail != "" {
+		c.Thumbnail = thumbnail
+	}
 }
 
 func (config *Config) Check() (err error) {
@@ -69,14 +111,28 @@ func (config *Config) Check() (err error) {
 		return fmt.Errorf("Unsupport encoding[GB18030,GBK,UTF8(default)]:%s", config.Encoding)
 	}
 	if _, err = os.Stat(config.File); os.IsNotExist(err) {
-		return
+		return fmt.Errorf("text file:%v", err)
 	}
 	config.ChapterRegex, err = regexp.Compile(config.Chapter)
 	if err == nil && config.SubChapter != "" {
 		config.SubChapterRegex, err = regexp.Compile(config.SubChapter)
 	}
+	if err != nil {
+		return fmt.Errorf("regexp Compile:%v", err)
+	}
 	if config.Cover != "" && config.Thumbnail == "" {
+		img, err := gg.LoadImage(config.Cover)
+		if err != nil {
+			return fmt.Errorf("cover:%v", err)
+		}
 		config.Thumbnail = config.Cover
+		width := img.Bounds().Dx()
+		if width < 360 {
+			config.Cover, err = ScaleImage(config.Cover, 180)
+		} else {
+			config.Thumbnail, err = ScaleImage(config.Cover, 180)
+		}
+
 	}
 	return
 }
@@ -87,7 +143,6 @@ func NewConfig(configFile string) (config *Config, err error) {
 	if err != nil {
 		return
 	}
-	err = config.Check()
 	return
 }
 
@@ -116,7 +171,6 @@ func (config *Config) NewWriter(fileName string) (*mobi.MobiWriter, error) {
 		m.AddCover(config.Cover, config.Thumbnail)
 	}
 	m.NewExthRecord(mobi.EXTH_DOCTYPE, "EBOK")
-	m.NewExthRecord(mobi.EXTH_LANGUAGE, "zh")
 	m.NewExthRecord(mobi.EXTH_AUTHOR, config.Author)
 	return m, nil
 }
@@ -191,4 +245,33 @@ func (c *Config) drawTitle(dc *gg.Context, rec *image.Rectangle) error {
 	}
 
 	return nil
+}
+
+func ScaleImage(src string, width int) (fileName string, err error) {
+	var img image.Image
+	imageType := z.FileType(src)
+	switch imageType {
+	case "jpeg", "jpg":
+		fileName = src + "_scare.jpg"
+		img, err = z.ImageJPEG(src)
+	case "png", "PNG":
+		fileName = src + "_scare.png"
+		img, err = z.ImagePNG(src)
+	default:
+		err = fmt.Errorf("support: .jpg,.png")
+	}
+	if err != nil {
+		return
+	}
+	bound := img.Bounds()
+	dx := bound.Dx()
+	dy := bound.Dy()
+	m := resize.Resize(uint(width), uint(width*dy/dx), img, resize.MitchellNetravali)
+	switch imageType {
+	case "jpg", "jpeg":
+		err = z.ImageEncodeJPEG(fileName, m, 90)
+	case "png", "PNG":
+		err = z.ImageEncodePNG(fileName, m)
+	}
+	return fileName, err
 }
