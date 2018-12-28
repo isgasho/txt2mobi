@@ -62,6 +62,7 @@ type Config struct {
 	decode            *encoding.Decoder
 	Font              *truetype.Font
 	DefaultBackground image.Image
+	Lang              string
 }
 
 func New(title, cover, thumbnail, author, chapter, subchapter, encoding, file string, compress bool) *Config {
@@ -128,7 +129,7 @@ func (config *Config) Check() (err error) {
 		config.Thumbnail = config.Cover
 		width := img.Bounds().Dx()
 		if width < 360 {
-			config.Cover, err = ScaleImage(config.Cover, 180)
+			config.Cover, err = ScaleImage(config.Cover, 540)
 		} else {
 			config.Thumbnail, err = ScaleImage(config.Cover, 180)
 		}
@@ -171,6 +172,9 @@ func (config *Config) NewWriter(fileName string) (*mobi.MobiWriter, error) {
 		m.AddCover(config.Cover, config.Thumbnail)
 	}
 	m.NewExthRecord(mobi.EXTH_DOCTYPE, "EBOK")
+	if config.Lang != "" {
+		m.NewExthRecord(mobi.EXTH_LANGUAGE, config.Lang)
+	}
 	m.NewExthRecord(mobi.EXTH_AUTHOR, config.Author)
 	return m, nil
 }

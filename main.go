@@ -11,13 +11,13 @@ import (
 	"os"
 	"time"
 
-	"./assets"
-	"./chapter"
-	"./settings"
+	"txt2mobi/assets"
+	"txt2mobi/chapter"
+	"txt2mobi/settings"
 )
 
 var (
-	HELP           = flag.Bool("h", false, "help")
+	IsHelp         = flag.Bool("h", false, "help")
 	ConfigFile     = flag.String("config", "", "ebook config file(.toml)")
 	IsParagraph    = flag.Bool("p", false, "[option]is to use <p></p>,use false as default")
 	OutputFileName = flag.String("o", "", "[option]output file name")
@@ -65,7 +65,7 @@ func init() {
 }
 
 func main() {
-	if *HELP {
+	if *IsHelp {
 		flag.Usage()
 		fmt.Println(`Sugesstion:
 	chapter: "^第[零一二三四五六七八九十百千两\\d]+[卷部][　 ]{0,1}.*$"
