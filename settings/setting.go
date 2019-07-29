@@ -24,6 +24,7 @@ type Config struct {
 	SubChapterRegex *regexp.Regexp
 	Compress        bool
 	decode          *encoding.Decoder
+	Lang            string
 }
 
 func New(title, cover, thumbnail, author, chapter, subchapter, encoding, file string, compress bool) *Config {
@@ -40,6 +41,7 @@ func New(title, cover, thumbnail, author, chapter, subchapter, encoding, file st
 		ChapterRegex:    nil,
 		SubChapterRegex: nil,
 		decode:          nil,
+		Lang:            "",
 	}
 	return config
 }
@@ -105,6 +107,9 @@ func (config *Config) NewWriter(fileName string) (*mobi.MobiWriter, error) {
 	m.Title(config.Title)
 	if !config.Compress {
 		m.Compression(mobi.CompressionNone)
+	}
+	if config.Lang != "" {
+		m.NewExthRecord(mobi.EXTH_LANGUAGE, config.Lang)
 	}
 	if config.Cover != "" && config.Thumbnail != "" {
 		m.AddCover(config.Cover, config.Thumbnail)

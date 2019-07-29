@@ -7,8 +7,8 @@ import (
 	"log"
 	"os"
 
-	"./chapter"
-	"./settings"
+	"github.com/zhnxin/txt2mobi/chapter"
+	"github.com/zhnxin/txt2mobi/settings"
 )
 
 var (
