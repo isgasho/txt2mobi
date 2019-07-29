@@ -7,3 +7,4 @@ chapter="^第.*卷$"
 subchapter="^第\\d+章 .*$"
 compress=false
 encoding="GB18030"
+lang="zh-CN"
